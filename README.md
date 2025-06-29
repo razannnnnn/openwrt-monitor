@@ -3,6 +3,8 @@
 
 Proyek ini menyediakan API ringan berbasis PHP yang berjalan di OpenWRT untuk menampilkan informasi sistem secara real-time, serta menampilkannya ke ESP8266 menggunakan LCD I2C.
 
+---
+
 ## 🔧 Fitur
 
 - ✅ Menampilkan suhu perangkat OpenWRT.
@@ -15,7 +17,143 @@ Proyek ini menyediakan API ringan berbasis PHP yang berjalan di OpenWRT untuk me
 
 ---
 
-## 🖥️ API Endpoint
+## 📁 Struktur File
+
+```
+/www/api/
+├── monitor.php
+├── speedtest.php
+/root/
+├── speedtest_log.sh
+├── speedtest.log
+```
+
+---
+
+## ⚙️ Cara Instalasi API di OpenWRT
+
+### 1. Instalasi PHP dan Modul Web
+
+```sh
+opkg update
+opkg install php8 php8-cgi uhttpd-mod-php
+```
+
+### 2. Konfigurasi uHTTPd
+
+Edit file konfigurasi:
+```sh
+vi /etc/config/uhttpd
+```
+
+Tambahkan atau pastikan baris ini ada:
+
+```
+list interpreter ".php=/usr/bin/php-cgi"
+option index_page 'index.html index.htm index.php'
+```
+
+Restart server:
+```sh
+/etc/init.d/uhttpd restart
+```
+
+### 3. Buat Folder API dan Simpan File
+
+```sh
+mkdir -p /www/api
+```
+Lalu upload `monitor.php` dan `speedtest.php` ke `/www/api/`
+
+---
+
+## 📈 Menjadwalkan Speedtest Otomatis
+
+### 1. Instalasi Python dan Speedtest-CLI
+
+```sh
+opkg install python3-pip
+pip3 install speedtest-cli
+```
+
+### 2. Buat Skrip `/root/speedtest_log.sh`
+
+```sh
+touch /root/speedtest_log.sh
+chmod +x /root/speedtest_log.sh
+```
+Isi file:
+
+```sh
+#!/bin/sh
+timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+result=$(speedtest-cli --json 2>/dev/null)
+
+if [ -n "$result" ]; then
+    download=$(echo "$result" | jsonfilter -e '@.download')
+    upload=$(echo "$result" | jsonfilter -e '@.upload')
+    ping=$(echo "$result" | jsonfilter -e '@.ping')
+    server=$(echo "$result" | jsonfilter -e '@.server.name')
+
+    echo "$timestamp - DL: $(awk "BEGIN {print $download/1000000}") Mbps, UL: $(awk "BEGIN {print $upload/1000000}") Mbps, Ping: $ping ms, Server: $server" >> /root/speedtest.log
+else
+    echo "$timestamp - Speedtest gagal" >> /root/speedtest.log
+fi
+```
+
+### 3. Jadwalkan via Cron
+
+```sh
+crontab -e
+```
+
+Tambahkan ini untuk menjalankan setiap 1 jam:
+```
+0 * * * * /root/speedtest_log.sh
+```
+
+Aktifkan cron jika belum:
+```sh
+/etc/init.d/cron enable
+/etc/init.d/cron start
+```
+
+---
+
+## 🔌 Wiring ESP8266 + LCD I2C
+
+```
+LCD SDA → D2 (GPIO4)
+LCD SCL → D1 (GPIO5)
+VCC     → 3.3V
+GND     → GND
+```
+
+---
+
+## 🖥️ Kode ESP8266 (Ringkas)
+
+- Gunakan library:
+  - `ESP8266WiFi.h`
+  - `ESP8266HTTPClient.h`
+  - `LiquidCrystal_I2C.h`
+  - `ArduinoJson.h`
+
+- Koneksi WiFi dan ambil data dari `http://192.168.1.1/api/monitor.php`
+
+- Tampilkan suhu, RX, TX, bandwidth di LCD
+
+---
+
+## 🧪 Akses API
+
+- Cek di browser:
+  - `http://192.168.1.1/api/monitor.php`
+  - `http://192.168.1.1/api/speedtest.php`
+
+---
+
+## 📝 Output API
 
 ### `monitor.php`
 ```json
@@ -43,74 +181,6 @@ Proyek ini menyediakan API ringan berbasis PHP yang berjalan di OpenWRT untuk me
 
 ---
 
-## ⚙️ Instalasi di OpenWRT
+## 📚 Lisensi
 
-### 1. Instalasi PHP & Modul Web
-```sh
-opkg update
-opkg install php8 php8-cgi uhttpd-mod-php
-```
-
-Tambahkan ke `/etc/config/uhttpd`:
-```
-list interpreter ".php=/usr/bin/php-cgi"
-option index_page 'index.html index.htm index.php'
-```
-
-Restart server:
-```sh
-/etc/init.d/uhttpd restart
-```
-
-### 2. Tambahkan Script Cron untuk Speedtest Otomatis
-```sh
-crontab -e
-```
-
-Tambahkan:
-```
-0 * * * * /root/speedtest_log.sh
-```
-
----
-
-## 📲 ESP8266 Setup
-
-- Komponen:
-  - NodeMCU ESP8266
-  - LCD I2C 16x2
-  - (Opsional) Rotary Encoder
-- Library:
-  - `ESP8266WiFi.h`
-  - `ESP8266HTTPClient.h`
-  - `LiquidCrystal_I2C.h`
-  - `ArduinoJson.h`
-
-LCD menampilkan suhu, RX/ TX data, total bandwidth, dan hasil speedtest secara real-time dari API OpenWRT.
-
----
-
-## 💾 Logging
-
-Speedtest log disimpan di:
-```
-/root/speedtest.log
-```
-
-Format:
-```
-2025-06-29 10:00:00 - DL: 23.45 Mbps, UL: 8.91 Mbps, Ping: 26.45 ms, Server: Jakarta
-```
-
----
-
-## 📦 Struktur File
-```
-/www/api/
-├── monitor.php
-├── speedtest.php
-/root/
-├── speedtest_log.sh
-├── speedtest.log
-```
-
+Proyek ini bersifat open-source dan bebas dimodifikasi untuk keperluan monitoring pribadi.
