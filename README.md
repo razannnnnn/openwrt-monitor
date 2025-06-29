@@ -114,10 +114,3 @@ Format:
 ├── speedtest.log
 ```
 
----
-
-## 📚 Lisensi
-
-Proyek ini bersifat open-source dan bebas dimodifikasi untuk keperluan monitoring pribadi.
-
----
