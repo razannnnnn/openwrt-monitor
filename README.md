@@ -1,8 +1,6 @@
 
 ![openwrt-monitor](https://socialify.git.ci/razannnnnn/openwrt-monitor/image?custom_language=PHP&description=1&font=Inter&forks=1&language=1&name=1&owner=1&pattern=Floating+Cogs&stargazers=1&theme=Dark)
 
-Proyek ini menyediakan API ringan berbasis PHP yang berjalan di OpenWRT untuk menampilkan informasi sistem secara real-time, serta menampilkannya ke ESP8266 menggunakan LCD I2C.
-
 ---
 
 ## 🔧 Fitur
